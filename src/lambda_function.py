@@ -127,6 +127,8 @@ def handler(event, context):
                 },
             }
             anomalies_found.append(anomaly_detail)
+            # Log payload so Grafana can query it via CloudWatch Logs Insights
+            print(json.dumps({"type": "ANOMALY_DETAIL", **anomaly_detail}))
 
     print(f"🔍 Detected {len(anomalies_found)} anomalies out of {len(features)} logs")
 
