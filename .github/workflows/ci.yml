@@ -23,6 +23,10 @@ jobs:
   lint-and-test:
     runs-on: ubuntu-latest
 
+    # moto mock library requires a default AWS region even for mocked services
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+
     # Strategy matrix: test on multiple Python versions
     strategy:
       matrix:
