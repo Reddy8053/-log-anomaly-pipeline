@@ -107,6 +107,17 @@ terraform apply
 5. **SNS** sends email alerts for immediate awareness
 6. **Grafana** visualizes anomaly trends and details
 
+## 🧠 Step-by-Step: How It Works End-to-End
+
+If you're a beginner, here is exactly what this pipeline is doing when it runs:
+
+1. **The Log Generator (Our App):** We run `python src/log_generator.py` to simulate a busy web server. It mostly prints normal logs, but intentionally injects 500 Server Errors and Latency Spikes (these are our "Anomalies").
+2. **The CloudWatch Trigger:** AWS automatically ingests these logs into a CloudWatch Log Group. We set up a "Subscription Filter," which is essentially an alarm that wakes up our Lambda Function the instant a new log arrives.
+3. **The Lambda Function (The Brains):** The AWS Lambda function wakes up, receives the raw log text (which arrives compressed and encoded), decodes it, and calculates numeric features (like `response_time_ms` and `is_error`).
+4. **The AI Model (Isolation Forest):** The Lambda passes those numbers into our pre-trained Machine Learning model. The model looks at the numbers and says: *"Hey! Normally this takes 100ms, but this one took 5000ms. This is an anomaly!"*
+5. **The Storage & Alerts:** If the model detects an anomaly, it writes a detailed JSON report to an S3 Bucket (a cloud hard drive) and publishes a message to an SNS Topic (which sends an email alert to your inbox).
+6. **The Dashboard (Grafana):** Grafana is our visual frontend. It connects to those CloudWatch metrics and S3 reports to show beautiful graphs of our errors, latency, and anomalies in real-time.
+
 ## 🔧 Configuration
 
 | Variable | Description | Default |
@@ -115,18 +126,28 @@ terraform apply
 | `project_name` | Resource name prefix | `log-anomaly` |
 | `environment` | Deployment env | `dev` |
 | `alert_email` | SNS alert recipient | `""` |
-| `lambda_timeout` | Lambda timeout (s) | `60` |
-| `lambda_memory` | Lambda memory (MB) | `256` |
 
-## 📊 Grafana Setup
+## 📊 Grafana Setup (Visualizing the Results)
 
-1. Install Grafana: `brew install grafana` (macOS) or [download](https://grafana.com/grafana/download)
-2. Start: `brew services start grafana`
-3. Open `http://localhost:3000` (admin/admin)
-4. Add **CloudWatch** data source with your AWS credentials
-5. Import `grafana/dashboard.json` via Dashboards → Import
+To view the dashboard, you need to run Grafana on your computer:
 
-## 🔄 CI/CD Pipeline
+**Option A (Mac Users with Homebrew):**
+```bash
+brew install grafana && brew services start grafana
+```
+
+**Option B (Manual Download — Works for Everyone):**
+1. Download Grafana for your OS from the [Official Downloads Page](https://grafana.com/grafana/download).
+2. Extract the folder, open your terminal, navigate into the folder, and run: `./bin/grafana server` 
+
+**Finalizing the Setup:**
+1. Open your browser and go to `http://localhost:3000`
+2. Log in with the default username: `admin` and password: `admin`
+3. Click on **Add your first data source** and search for **CloudWatch**.
+4. Enter your AWS Access Key ID, Secret Access Key, and set Default Region to `us-east-1`. Click Save & Test.
+5. In the left menu, go to **Dashboards > Import** and upload the `grafana/dashboard.json` file found in this project folder!
+
+## 🔄 CI/CD Pipeline (Automated Deployments)
 
 | Workflow | Trigger | Steps |
 |----------|---------|-------|

@@ -30,3 +30,9 @@ logs/
 
 # Environment
 .env
+
+# Local Grafana instance
+grafana-v*
+grafana-*.tar.gz
+grafana.log
+
