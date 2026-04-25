@@ -31,8 +31,12 @@ import json
 import boto3
 from datetime import datetime
 
-from src.log_parser import decode_cloudwatch_event, extract_features
-from src.anomaly_model import load_model, predict, anomaly_scores
+try:
+    from src.log_parser import decode_cloudwatch_event, extract_features
+    from src.anomaly_model import load_model, predict, anomaly_scores
+except ModuleNotFoundError:
+    from log_parser import decode_cloudwatch_event, extract_features
+    from anomaly_model import load_model, predict, anomaly_scores
 
 
 # ──────────────────────────────────────────────

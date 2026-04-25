@@ -23,9 +23,15 @@ def push_logs():
         print(f"Error creating stream: {e}")
         return
 
+    import datetime
     log_events = []
     for log_dict in logs:
         dt = dateutil.parser.isoparse(log_dict['timestamp'])
+        # CRITICAL FIX: The generator creates naive UTC strings.
+        # If we don't explicitly treat them as UTC, Python assumes they are Local time,
+        # which pushes the log timestamps 5 hours into the future!
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
         ts_ms = int(dt.timestamp() * 1000)
         log_events.append({
             'timestamp': ts_ms,
