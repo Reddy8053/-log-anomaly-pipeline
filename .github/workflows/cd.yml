@@ -64,6 +64,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      - name: Bootstrap Terraform State S3 Bucket
+        run: |
+          aws s3api create-bucket --bucket log-anomaly-tfstate-github-actions-8053 --region us-east-1 || echo "Bucket already exists"
+          aws s3api put-bucket-versioning --bucket log-anomaly-tfstate-github-actions-8053 --versioning-configuration Status=Enabled
+
       # Install Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
