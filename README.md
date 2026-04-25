@@ -1,6 +1,5 @@
 # 🔍 AI-Powered Log Anomaly Detection Pipeline
-
-An end-to-end **log anomaly detection system** that uses an **Isolation Forest ML model** running on **AWS Lambda** to automatically detect anomalies in CloudWatch log streams, store results in S3, send alerts via SNS, and visualize everything in Grafana.
+An end-to-end **log anomaly detection system** that uses an **Isolation Forest ML model** running on **AWS Lambda** to automatically detect anomalies in CloudWatch log streams, store results in S3, and send alerts via SNS.
 
 ## 🏗️ Architecture
 
@@ -11,12 +10,10 @@ graph LR
     C -->|anomaly report| D[S3 Bucket]
     C -->|alert| E[SNS Topic]
     E -->|email| F[You 📧]
-    D -->|read| G[Grafana Dashboard]
     
     style C fill:#ff6b6b,color:#fff
     style D fill:#4ecdc4,color:#fff
     style E fill:#ffe66d,color:#000
-    style G fill:#a29bfe,color:#fff
 ```
 
 ## 📁 Project Structure
@@ -42,10 +39,9 @@ log-anomaly-pipeline/
 ├── .github/workflows/
 │   ├── ci.yml                  # Lint + Test on every push
 │   └── cd.yml                  # Deploy to AWS on merge to main
-├── grafana/
-│   └── dashboard.json          # Pre-built Grafana dashboard
 ├── scripts/
-│   └── train_model.py          # Model training script
+│   ├── train_model.py          # Model training script
+│   └── push_live_logs.py       # Pushes mock traffic to AWS
 ├── requirements.txt            # Production dependencies
 └── requirements-dev.txt        # Dev/test dependencies
 ```
