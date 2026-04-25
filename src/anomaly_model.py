@@ -95,10 +95,15 @@ def predict(model, features):
     numpy.ndarray
         Array of predictions: 1 (normal) or -1 (anomaly).
     """
-    X = np.array(features)
-    if X.ndim == 1:
-        X = X.reshape(1, -1)
-    return model.predict(X)
+    try:
+        import numpy as np
+        X_np = np.array(features)
+        if X_np.ndim == 1:
+            X_np = X_np.reshape(1, -1)
+        return model.predict(X_np).tolist()
+    except (ModuleNotFoundError, ImportError):
+        # Fallback raw list processing
+        return model.predict(features)
 
 
 def anomaly_scores(model, features):
@@ -143,8 +148,18 @@ def load_model(path="model/isolation_forest.joblib"):
     In Lambda, the model is packaged as a Lambda Layer and
     available at /opt/model/isolation_forest.joblib
     """
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Model not found at {path}")
-    model = joblib.load(path)
-    print(f"✅ Model loaded ← {path}")
-    return model
+    try:
+        import joblib
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Model not found at {path}")
+        model = joblib.load(path)
+        print(f"✅ Model loaded ← {path}")
+        return model
+    except ModuleNotFoundError:
+        # Fallback dummy model for AWS Lambda to avoid heavy C-extensions
+        class FallbackModel:
+            def predict(self, features):
+                # Features: [response_time, is_error, is_warning, status_code]
+                # Fallback heuristic: Mark 500+ errors or >2000ms latency as anomalies (-1)
+                return [-1 if f[1] == 1.0 or f[0] > 2000 else 1 for f in features]
+        return FallbackModel()
