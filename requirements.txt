@@ -1,0 +1,5 @@
+# Core dependencies for Lambda & anomaly detection
+scikit-learn==1.4.2
+joblib==1.4.2
+numpy==1.26.4
+boto3==1.34.110

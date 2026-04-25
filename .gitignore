@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+*.egg
+
+# Model artifacts (large binary)
+model/*.joblib
+
+# IDE
+.vscode/
+.idea/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+
+# Environment
+.env

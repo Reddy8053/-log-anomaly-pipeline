@@ -1,0 +1,84 @@
+# ============================================================
+# CD WORKFLOW — Continuous Deployment
+# ============================================================
+# WHAT IT DOES:
+#   When code is merged to 'main', this workflow:
+#   1. Runs all tests (safety gate)
+#   2. Initializes Terraform
+#   3. Plans the infrastructure changes
+#   4. Applies the changes to AWS
+#
+# PREREQUISITES:
+#   Set these GitHub Secrets (Settings → Secrets → Actions):
+#   - AWS_ACCESS_KEY_ID     : Your AWS access key
+#   - AWS_SECRET_ACCESS_KEY : Your AWS secret key
+#   - ALERT_EMAIL           : (optional) Email for anomaly alerts
+#
+# WHY CD?
+#   Every merge to main automatically deploys to AWS.
+#   No manual steps, no "it works on my machine" problems.
+#   The same Terraform code that was tested in CI gets applied.
+# ============================================================
+
+name: CD — Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+
+# Prevent concurrent deployments
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ── Job 1: Run tests first (safety gate) ─────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+  # ── Job 2: Deploy with Terraform ─────────────────
+  deploy:
+    needs: test  # Only runs if tests pass
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up AWS credentials from GitHub Secrets
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Install Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      # Initialize Terraform (downloads providers, sets up backend)
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      # Show what changes will be made (review step)
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -var="alert_email=${{ secrets.ALERT_EMAIL }}" -out=tfplan
+
+      # Apply the changes to AWS
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve tfplan

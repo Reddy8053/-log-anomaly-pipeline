@@ -1,0 +1,190 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "AI-Powered Log Anomaly Detection — Real-time monitoring of anomalies detected by the Isolation Forest model",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "🚨 Anomaly Count Over Time",
+      "description": "Number of anomalies detected per time bucket. Spikes indicate potential incidents.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "targets": [
+        {
+          "namespace": "LogAnomaly",
+          "metricName": "AnomalyCount",
+          "statistics": ["Sum"],
+          "period": "300"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "pointSize": 5,
+            "showPoints": "auto"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "📊 Detection Summary",
+      "description": "Quick stats: total logs processed vs anomalies detected",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "targets": [
+        {
+          "namespace": "LogAnomaly",
+          "metricName": "AnomalyCount",
+          "statistics": ["Sum"],
+          "period": "3600"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "title": "⏱️ Response Time Distribution",
+      "description": "P50, P95, P99 response times. High P99 indicates tail latency issues.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "targets": [
+        {
+          "namespace": "LogAnomaly",
+          "metricName": "ResponseTime",
+          "statistics": ["p50", "p95", "p99"],
+          "period": "300"
+        }
+      ]
+    },
+    {
+      "title": "📋 Recent Anomaly Details",
+      "description": "Table of recent anomalies with service, status code, response time, and anomaly score",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "json", "uid": "s3-json" },
+      "targets": [
+        {
+          "target": "anomalies",
+          "type": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "anomaly_score" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "color-background" } },
+              { "id": "thresholds", "value": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": -0.3 },
+                  { "color": "green", "value": 0 }
+                ]
+              }}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "title": "🔥 Anomalies by Service",
+      "description": "Which microservices are producing the most anomalies",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 18 },
+      "datasource": { "type": "json", "uid": "s3-json" },
+      "targets": [
+        {
+          "target": "anomalies_by_service",
+          "type": "table"
+        }
+      ]
+    },
+    {
+      "title": "📈 Error Rate Over Time",
+      "description": "Percentage of 5xx errors in the log stream",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 18 },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "targets": [
+        {
+          "namespace": "LogAnomaly",
+          "metricName": "ErrorRate",
+          "statistics": ["Average"],
+          "period": "300"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "🔔 Alert History",
+      "description": "Timeline of SNS alerts triggered by the anomaly detector",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 18 },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "targets": [
+        {
+          "logGroupNames": ["/aws/lambda/log-anomaly-detector-dev"],
+          "queryMode": "Logs",
+          "expression": "fields @timestamp, @message | filter @message like /ANOMALY/ | sort @timestamp desc | limit 50"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["anomaly-detection", "logs", "ai", "monitoring"],
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "type": "custom",
+        "current": { "text": "dev", "value": "dev" },
+        "options": [
+          { "text": "dev", "value": "dev" },
+          { "text": "staging", "value": "staging" },
+          { "text": "prod", "value": "prod" }
+        ]
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "🔍 Log Anomaly Detection Dashboard",
+  "uid": "log-anomaly-detection",
+  "version": 1
+}
