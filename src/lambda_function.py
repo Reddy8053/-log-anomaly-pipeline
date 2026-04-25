@@ -45,6 +45,7 @@ MODEL_PATH = os.environ.get("MODEL_PATH", "/opt/model/isolation_forest.joblib")
 # AWS SDK clients (created outside handler for connection reuse)
 s3_client = boto3.client("s3")
 sns_client = boto3.client("sns")
+cloudwatch_client = boto3.client("cloudwatch")
 
 # Load model once at cold-start (not on every invocation)
 # This is a key Lambda optimization — model loading is expensive
@@ -173,6 +174,41 @@ def handler(event, context):
                 print(f"📧 Published alert to SNS")
             except Exception as e:
                 print(f"❌ SNS publish failed: {e}")
+
+    # ── Step 7: Put CloudWatch Metrics for Grafana ───────
+    try:
+        # Calculate overall stats for the batch
+        total_errors = sum(1 for f in features if f[1] == 1)  # is_error feature
+        error_rate = (total_errors / len(features)) * 100 if features else 0
+        avg_latency = sum(f[0] for f in features) / len(features) if features else 0
+
+        metric_data = [
+            {
+                "MetricName": "AnomalyCount",
+                "Value": len(anomalies_found),
+                "Unit": "Count"
+            },
+            {
+                "MetricName": "ErrorRate",
+                "Value": error_rate,
+                "Unit": "Percent"
+            },
+            {
+                "MetricName": "ResponseTime",
+                "Value": avg_latency,
+                "Unit": "Milliseconds"
+            }
+        ]
+        
+        # Optionally, for a more accurate ResponseTime distribution in Grafana, 
+        # we could push an array of values, but an average works fine for this batch summary.
+        cloudwatch_client.put_metric_data(
+            Namespace="LogAnomaly",
+            MetricData=metric_data
+        )
+        print("📊 Published metrics to CloudWatch LogAnomaly namespace")
+    except Exception as e:
+        print(f"❌ Failed to publish CloudWatch metrics: {e}")
 
     return {
         "statusCode": 200,

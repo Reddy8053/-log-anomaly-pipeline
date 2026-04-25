@@ -79,6 +79,14 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "sns:Publish"
         ]
         Resource = aws_sns_topic.anomaly_alerts.arn
+      },
+      {
+        # Permission to publish custom metrics for Grafana
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:PutMetricData"
+        ]
+        Resource = "*"
       }
     ]
   })
