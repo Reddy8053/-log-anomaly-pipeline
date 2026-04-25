@@ -35,6 +35,8 @@ jobs:
   # ── Job 1: Run tests first (safety gate) ─────────
   test:
     runs-on: ubuntu-latest
+    env:
+      AWS_DEFAULT_REGION: us-east-1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
